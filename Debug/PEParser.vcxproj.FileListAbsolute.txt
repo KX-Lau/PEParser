@@ -1,0 +1,2 @@
+E:\CppWorkspace\PEParser\Debug\PEParser.exe
+E:\CppWorkspace\PEParser\Debug\PEParser.pdb

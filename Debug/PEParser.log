@@ -1,0 +1,12 @@
+﻿  PEParser.cpp
+E:\CppWorkspace\PEParser\PEParser.cpp(222,9): warning C4477: “printf”: 格式字符串“%0X”需要类型“unsigned int”的参数，但可变参数 1 拥有了类型“IMAGE_FILE_HEADER”
+E:\CppWorkspace\PEParser\PEParser.cpp(223,9): warning C4477: “printf”: 格式字符串“%0X”需要类型“unsigned int”的参数，但可变参数 1 拥有了类型“IMAGE_OPTIONAL_HEADER32”
+E:\CppWorkspace\PEParser\PEParser.cpp(367,10): warning C4477: “printf”: 格式字符串“%s”需要类型“char *”的参数，但可变参数 1 拥有了类型“DWORD”
+E:\CppWorkspace\PEParser\PEParser.cpp(450,9): warning C4477: “printf”: 格式字符串“%s”需要类型“char *”的参数，但可变参数 1 拥有了类型“DWORD”
+E:\CppWorkspace\PEParser\PEParser.cpp(472,16): warning C4018: “<”: 有符号/无符号不匹配
+E:\CppWorkspace\PEParser\PEParser.cpp(478,20): warning C4018: “<”: 有符号/无符号不匹配
+E:\CppWorkspace\PEParser\PEParser.cpp(486,10): warning C4477: “printf”: 格式字符串“%-10s”需要类型“char *”的参数，但可变参数 3 拥有了类型“DWORD”
+E:\CppWorkspace\PEParser\PEParser.cpp(495,21): warning C4018: “<”: 有符号/无符号不匹配
+E:\CppWorkspace\PEParser\PEParser.cpp(568,21): warning C4018: “<”: 有符号/无符号不匹配
+E:\CppWorkspace\PEParser\PEParser.cpp(612): warning C4715: “RvaToRaw”: 不是所有的控件路径都返回值
+  PEParser.vcxproj -> E:\CppWorkspace\PEParser\Debug\PEParser.exe
