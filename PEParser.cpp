@@ -27,6 +27,7 @@ void displaySectionHeader(PIMAGE_NT_HEADERS pNtHeader);
 void displayImportTable(PVOID pbFile);
 void displayExportTable(PVOID pbFile);
 void displayBaseRelocTable(PVOID pbFile);
+void displayResourceTable(PVOID pbFile);
 DWORD RvaToRaw(PIMAGE_NT_HEADERS pNtHeader, DWORD Rva);
 
 
@@ -100,7 +101,8 @@ int main(int argc, char* agrv[])
 		printf("\t\t6.SECTION头\n");
 		printf("\t\t7.导出表\n");
 		printf("\t\t8.导入表\n");
-		printf("\t\t9.重定位表\n\n");
+		printf("\t\t9.重定位表\n");
+		printf("\t\t10.资源表\n\n");
 		printf("请输入序号（0退出）：\n");
 
 		scanf_s("%d", &opt);
@@ -144,6 +146,10 @@ int main(int argc, char* agrv[])
 
 		case 9:
 			displayBaseRelocTable(pbFile);
+			break;
+
+		case 10:
+			displayResourceTable(pbFile);
 			break;
 
 		default:
@@ -588,6 +594,117 @@ void displayBaseRelocTable(PVOID pbFile)
 		pReloc = (PIMAGE_BASE_RELOCATION)((DWORD)pReloc + pReloc->SizeOfBlock);
 	}
 };
+
+//资源类型
+const char* szResName[0x11] = {0, "鼠标指针", "位图", "图标", "菜单", "对话框", "字符串列表", "字体目录", "字体", "快捷键", "非格式化资源", "消息列表", "鼠标指针组", "zz", "图标组", "xx", "版本信息"};
+
+//打印资源表
+void displayResourceTable(PVOID pbFile)
+{
+	puts("\n====================Resource Table====================\n");
+
+	pDosHeader = (PIMAGE_DOS_HEADER)pbFile;
+	pNtHeader = (PIMAGE_NT_HEADERS)((DWORD)pbFile + pDosHeader->e_lfanew);
+
+	//定位到资源表的RVA, 并转换成FOA
+	DWORD Resource_table_offset = RvaToRaw(pNtHeader, (DWORD)pNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].VirtualAddress);
+
+	//在FileBuffer中定位到资源表, 并指向资源表
+	PIMAGE_RESOURCE_DIRECTORY pResourceDirectory = (PIMAGE_RESOURCE_DIRECTORY)((DWORD)pbFile + Resource_table_offset);
+
+	printf("---- NumberOfNamedEntries: %d ---- NumberOfIdEntries: %d ----\n\n", pResourceDirectory->NumberOfNamedEntries, pResourceDirectory->NumberOfIdEntries);
+
+	//定位到第一个资源目录项
+	//PIMAGE_RESOURCE_DIRECTORY_ENTRY pResourceDirectoryEntry = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)((DWORD)pResourceDirectory + sizeof(IMAGE_RESOURCE_DIRECTORY));
+	PIMAGE_RESOURCE_DIRECTORY_ENTRY pResourceDirEntry = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)(pResourceDirectory + 1);
+
+	//循环遍历每个资源目录
+	for (int i = 0; i < pResourceDirectory->NumberOfNamedEntries + pResourceDirectory->NumberOfIdEntries; i++)
+	{
+
+		//一级目录
+		//名字为字符串  1
+		if (pResourceDirEntry[i].NameIsString)
+		{
+			PIMAGE_RESOURCE_DIR_STRING_U pNameStr = (PIMAGE_RESOURCE_DIR_STRING_U)((DWORD)pResourceDirectory + pResourceDirEntry[i].NameOffset);
+			WCHAR szStr[MAX_PATH] = {0};
+			memcpy_s(szStr, MAX_PATH, pNameStr->NameString, sizeof(WCHAR) * (pNameStr->Length + 1));
+			printf("资源字符串: %ls\n", szStr);
+
+		}
+
+		//名字为ID	0
+		else
+		{
+			if (pResourceDirEntry[i].Id < 0x11)
+			{
+				printf("资源类型ID: %p   %s\n", pResourceDirEntry[i].Id, szResName[pResourceDirEntry[i].Id]);
+			}
+			else
+			{
+				printf("资源类型ID: %p   %d\n", pResourceDirEntry[i].Id, pResourceDirEntry[i].Id);
+			}
+		}
+
+
+		//二级目录
+		//子资源项是目录  1
+		if (pResourceDirEntry[i].DataIsDirectory)
+		{
+			printf("资源二级目录偏移: %X\n", pResourceDirEntry[i].OffsetToData);
+
+			//定位到二级资源目录
+			PIMAGE_RESOURCE_DIRECTORY pResDirSecond = (PIMAGE_RESOURCE_DIRECTORY)((DWORD)pResourceDirectory + pResourceDirEntry[i].OffsetToDirectory);
+
+			//定位到第一个资源目录项
+			PIMAGE_RESOURCE_DIRECTORY_ENTRY pResDirEntrySec = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)(pResDirSecond + 1);
+
+			//循环遍历
+			for (int i = 0; i < pResDirSecond->NumberOfNamedEntries + pResDirSecond->NumberOfIdEntries; i++)
+			{
+				//名字是字符串  1
+				if (pResDirEntrySec[i].NameIsString)
+				{
+					PIMAGE_RESOURCE_DIR_STRING_U pNameStr = (PIMAGE_RESOURCE_DIR_STRING_U)((DWORD)pResourceDirectory + pResDirEntrySec[i].NameOffset);
+					WCHAR szStr[MAX_PATH] = { 0 };
+					memcpy_s(szStr, MAX_PATH, pNameStr->NameString, sizeof(WCHAR)* (pNameStr->Length + 1));
+					printf("资源字符串: %ls\n", szStr);
+				}
+				//名字是ID  0
+				else
+				{
+					printf("资源标识ID: %d\n", pResDirEntrySec[i].Id);
+				}
+			}
+
+
+			//三级目录
+			//定位到三级资源目录
+			PIMAGE_RESOURCE_DIRECTORY pResDirThird = (PIMAGE_RESOURCE_DIRECTORY)((DWORD)pResourceDirectory + pResDirEntrySec[i].OffsetToDirectory);
+
+			//定位到第一个资源目录项
+			PIMAGE_RESOURCE_DIRECTORY_ENTRY pResDirEntryThird = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)(pResDirThird + 1);
+
+			//判断是否是目录
+			if (!pResDirEntryThird[i].DataIsDirectory)
+			{
+				//数据项
+				PIMAGE_RESOURCE_DATA_ENTRY pResData = (PIMAGE_RESOURCE_DATA_ENTRY)((DWORD)pResourceDirectory + pResDirEntryThird->OffsetToData);
+
+				printf("数据偏移:%X   数据大小:%X\n", pResData->OffsetToData, pResData->Size);
+			}
+			printf("\n\n");
+
+		}
+
+
+		
+	}
+	
+	
+	
+
+}
 
 
 //相对虚拟地址RVA--->文件偏移地址FOA
